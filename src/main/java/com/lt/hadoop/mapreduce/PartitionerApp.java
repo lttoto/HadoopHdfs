@@ -7,6 +7,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -16,11 +17,15 @@ import java.io.IOException;
 /**
  * Created by taoshiliu on 2018/2/11.
  * input file
- * hadoop welcome
- * hadoop hdfs mapreduce
- * hadoop hdfs
+ * xiaomi 200
+ * huawei 300
+ * xiaomi 100
+ * huawei 200
+ * iphone7 300
+ * iphone7 500
+ * nokia 20
  */
-public class WordCountApp {
+public class PartitionerApp {
 
     public static class MyMapper extends Mapper<LongWritable,Text,Text,LongWritable>{
 
@@ -30,9 +35,9 @@ public class WordCountApp {
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
             String[] words = line.split(" ");
-            for(String word : words) {
-                context.write(new Text(word),one);
-            }
+
+            context.write(new Text(words[0]),new LongWritable(Long.parseLong(words[1])));
+
         }
     }
 
@@ -47,6 +52,28 @@ public class WordCountApp {
         }
     }
 
+    public static class MyPartitioner extends Partitioner<Text,LongWritable> {
+
+        @Override
+        public int getPartition(Text text, LongWritable longWritable, int i) {
+
+            if(text.toString().equals("xiaomi")) {
+                return 0;
+            }
+
+            if(text.toString().equals("huawei")) {
+                return 1;
+            }
+
+            if(text.toString().equals("iphone7")) {
+                return 2;
+            }
+
+            return 3;
+        }
+    }
+
+
     public static void main(String[] args) throws Exception{
         Configuration configuration = new Configuration();
 
@@ -58,7 +85,7 @@ public class WordCountApp {
         }
 
         Job job = Job.getInstance(configuration,"wordcount");
-        job.setJarByClass(WordCountApp.class);
+        job.setJarByClass(PartitionerApp.class);
         FileInputFormat.setInputPaths(job,new Path(args[0]));
         job.setMapperClass(MyMapper.class);
         job.setMapOutputKeyClass(Text.class);
@@ -66,8 +93,19 @@ public class WordCountApp {
         job.setReducerClass(MyReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(LongWritable.class);
+
+        //Partition指定Map输出的相同的Key归到同一个Reducer中执行
+        job.setPartitionerClass(MyPartitioner.class);
+        //setNumReduceTask表示将Reduce的结果放置在对应的file中
+        job.setNumReduceTasks(4);
+
         FileOutputFormat.setOutputPath(job,new Path(args[1]));
         System.exit(job.waitForCompletion(true)?0:1);
+
+        /*
+        * Partitioner设置的结果是
+        * 最终会有4个文件part-0000(xiaomi)，part-0001(huawei)，part-0002(iphone7)，part-0003(nokia)
+        * */
     }
 
 }
