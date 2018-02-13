@@ -29,6 +29,7 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
       <version>${hadoop.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -44,4 +45,23 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <!--mvn assembly:assembly改变打包方式，这样打包会把dependency中对应的scope的依赖打进Jar包中-->
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass></mainClass>
+            </manifest>
+          </archive>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
